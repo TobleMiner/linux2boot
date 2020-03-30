@@ -1,0 +1,418 @@
+#!/bin/sh
+
+if [ -n "$DEBUG" ]; then
+	set -x
+fi
+
+AUTOBOOT_WAIT=3
+
+# echo-like function for writing to stderr
+# $@: Message to be written to stderr
+erro() {
+	( >&2 echo "$@" )
+}
+
+# Find mountpoint of a block device by scanning /proc/mounts
+# Exits with code 1 and returns a new mountpoint if block
+# device is not mounted
+# $1: The block device
+get_mountpoint() {
+	dev_check="$1"
+
+	mountpoint=$(cat /proc/mounts | while read -r mount; do
+		dev="$(echo "$mount" | cut -d' ' -f1)"
+		if [ "$dev" = "$dev_check" ]; then
+			echo -e "$(echo "$mount" | cut -d' ' -f2)"
+			break
+		fi
+	done)
+
+	if [ -z "$mountpoint" ]; then
+		echo /mnt"$dev_check"
+		return 1
+	fi
+	echo "$mountpoint"
+}
+
+# Concatenate two path components
+# $1: First component
+# $2: Second component
+pathcat() {
+	base="$1"
+	path="$2"
+
+	echo "${base%/}/${path#/}"
+}
+
+# Make a path absolute
+# Adds an absolute prefix to non-absolute paths
+# $1: The path
+# $2: The absolute prefix
+make_abspath() {
+	path="$1"
+	prefix="$2"
+
+	case "$path" in
+		/*) echo "$path";;
+		*) pathcat "$prefix" "$path";;
+	esac
+}
+
+# Make an absolute path relative
+# Removes an absolute prefix from an absolute path
+# $1: The path
+# $2: The absolute prefix
+make_relpath() {
+	path="$1"
+	prefix="$2"
+
+	num_chars="${#prefix}"
+	suffix_start=$((num_chars + 1))
+	path_no_prefix="$(echo "$path" | cut -c$suffix_start-)"
+	echo "${path_no_prefix#/}"
+}
+
+# Find linux2boot configs on a block device
+# Returns a ':'-separated list of absolute paths to linux2boot
+# configs
+# Exits with code 1 if the block device can not be mounted
+# $1: The block device
+find_configs() {
+	blkdev="$1"
+	mountpoint="$(get_mountpoint "$blkdev")"
+
+	if [ $? -ne 0 ]; then
+		mkdir -p "$mountpoint"
+		if ! mount -o ro "$blkdev" "$mountpoint"; then
+			return 1
+		fi
+	fi
+
+	configdir="$mountpoint"/boot/linux2boot
+	if ! [ -d "$configdir" ]; then
+		return 1
+	fi
+
+	echo -n "${blkdev};"
+	for file in "$configdir"/*.conf; do
+		echo -n "${file}:"
+	done	
+}
+
+# Iterator for boot device lists
+# Iterates over lists of block devices with format
+# <dev1>[;<data>][|<dev2>[;data]]...[|<devN>[;data]]
+# The device and associated data are passed to the
+# callback as first and second argument. 
+# $1: '|'-serparated list of block devices
+# $2: Callback function
+# $@: All remaining arguments are passed to the callback function
+for_each_bootdev() {
+	entries="$1"
+	callback="$2"
+	shift 2
+
+	IFS='|'
+	for device in $entries; do
+		if [ -z "$device" ]; then
+			continue
+		fi
+		blkdev=${device%%;*}
+		configs="${device#*;}"
+
+		$callback "$configs" "$blkdev" "$@"
+	done
+	unset IFS 
+}
+
+# Interator for boot config lists
+# Interates over list of boot configurations with format
+# <conf1>[:<conf2>]...[:<confN>]
+# The absolute path of the config file, the mountpoint and the block device
+# are passed to the callback as first, second and third argument.
+# $1: ':'-separated list of configs
+# $2: Block device the configs are stored on
+# $3: Callback function
+# $@: All remaining arguments are passed to the callback function
+for_each_boot_config() {
+	configs="$1"
+	blkdev="$2"
+	callback="$3"
+	shift 3
+
+	mountpoint="$(get_mountpoint "$blkdev")"
+	IFS=':'
+	for config in $configs; do
+		if [ -z "$config" ]; then
+			continue
+		fi
+
+		$callback "$config" "$mountpoint" "$blkdev" "$@"
+	done 
+	unset IFS
+}
+
+# for_each_boot_config iterator callback
+# Returns the relative config filepath
+fname_handler() {
+	echo "$1"
+}
+
+# Dumps a list of bootentries in human-readable
+# format
+# $1: List of bootentries
+dump_bootentries() {
+	entries="$(for_each_bootdev "$1" for_each_boot_config fname_handler)"
+	IFS=$'\n'
+	i=1
+	for entry in $entries; do
+		fname="$(basename "$entry")"
+		echo "${i}: ${fname%.conf}"
+		i=$((i + 1))
+	done
+}
+
+# Get n-th entry from list of bootentries
+# Exit code 1 if entry is not found
+# $1: List of bootentries
+# $2: Index of bootentry
+get_bootentry() {
+	bootentry="$(for_each_bootdev "$1" for_each_boot_config fname_handler | cut -d$'\n' -f$2)"
+	if [ -z "$bootentry" ]; then
+		return 1
+	fi
+	echo "$bootentry"
+}
+
+# for_each_boot_config callback
+# Returns the boot device name
+bootdev_handler() {
+	echo "$3"
+}
+
+# Get block device for n-th entry from list of bootentries
+# $1: List of bootentries
+# $2: Index of bootentry
+get_bootdevice() {
+	bootdev="$(for_each_bootdev "$1" for_each_boot_config bootdev_handler | cut -d$'\n' -f$2)"
+	if [ -z "$bootdev" ]; then
+		return 1
+	fi
+	echo "$bootdev"
+}
+
+# Get number of bootentries in a list of bootentries
+# $1: List of bootentries
+num_bootentries() {
+	for_each_bootdev "$1" for_each_boot_config bootdev_handler | wc -l
+}
+
+# for_each_bootdev callback
+# Returns the mountpoint of the current dev if mountpoint
+# it is a prefix of the path passed as $3
+# $3: The path
+mountpoint_handler() {
+	configs="$1"
+	blkdev="$2"
+	file="$3"
+
+	mountpoint="$(get_mountpoint "$blkdev")"
+	num_chars="${#mountpoint}"
+	file_prefix="$(echo "$file" | cut -c-$num_chars)"
+	if [ "$file_prefix" = "$mountpoint" ]; then
+		echo "$mountpoint"
+	fi
+}
+
+# Find mountpoint providing a file
+# Returns an empty string of mountpoint is not found
+# $1: List of bootentries
+# $2: The file
+find_mountpoint() {
+	for_each_bootdev "$1" mountpoint_handler "$2"
+}
+
+# for_each_bootdev callback
+# Checks a block device for a default linux2boot config and
+# returns its absolute path if found 
+get_default_boot_entry_device() {
+	blkdev="$2"
+
+	mountpoint="$(get_mountpoint "$blkdev")"
+	defconfig="${mountpoint}/boot/linux2boot/linux2boot.default"
+	if [ -f "$defconfig" ]; then
+		echo "$defconfig"
+	fi
+}
+
+# Get default boot config
+# Gets the newest (mtime) default boot config
+# Returns an empty string if no config was found
+# $1: List of bootentries
+get_default_boot_entry() {
+	bootentries="$1"
+	entries="$(for_each_bootdev "$bootentries" get_default_boot_entry_device)"
+	if [ -z "$entries" ]; then
+		return
+	fi
+
+	default_entry="$(ls -t $entries | cut -f1)"
+	if [ -n "$default_entry" ]; then
+		unset default
+		mountpoint="$(find_mountpoint "$bootentries" "$default_entry")"
+		source "$default_entry"
+		pathcat "$mountpoint" "$default"
+	fi
+}
+
+# Update the default boot entry on a device
+# $1: Mountpoint of the device
+# $2: Path to the default boot config to use
+set_default_boot_entry() {
+	mountpoint="$1"
+	bootconfig="$2"
+
+	if ! mount -o remount,rw "$mountpoint"; then
+		erro "Failed to remount boot device rw"
+		return 1
+	fi
+
+	configdir="$(dirname "$bootconfig")"
+	bootconfig_rel="$(make_relpath "$bootconfig" "$mountpoint")"
+	defconfig="$(make_abspath "$configdir" "$mountpoint")"/linux2boot.default
+	if ! echo "default=\"$bootconfig_rel\"" > "$defconfig"; then
+		erro "Failed to save default boot config"
+		return 1
+	fi
+}
+
+# Boot from a bootconfig
+# Loads and kexecs a new kernel
+# $1: Absolute path to the boot config
+# $2: Prefix for relative paths in boot config
+boot() {
+	bootconfig="$1"
+	mountpoint="$2"
+
+	unset kernel
+	unset initrd
+	unset cmdline
+	unset dtb
+	source "$bootconfig"
+
+	if [ -z "$kernel" ]; then
+		erro "Invalid config, missing kernel"
+		return 1
+	fi
+
+	kernel="$(make_abspath "$kernel" "$mountpoint")"
+
+	args=''
+	if [ -n "$initrd" ]; then
+		args="$args --initrd '$(make_abspath "$initrd" "$mountpoint")'"
+	fi
+
+	if [ -n "dtb" ]; then
+		args="$args --dtb '$(make_abspath "$dtb" "$mountpoint")'"
+	fi
+
+	if [ -n "$cmdline" ]; then
+		args="$args --append '$cmdline'"
+	fi
+
+	echo "Loading kernel..."
+	if eval "kexec -l $args "$kernel""; then
+		echo "Saving default boot config..."
+		if ! set_default_boot_entry "$mountpoint" "$bootconfig"; then
+			erro "Failed to save default boot config"
+		fi
+		echo "Starting kernel"
+		kexec -e
+	fi
+}
+
+# Boot a bootentry from a list of bootentries
+# $1: List of bootentries
+# $2: Index of entry to boot
+boot_bootentry() {
+	bootconfig="$(get_bootentry "$1" "$2")"
+	if [ $? -ne 0 ]; then
+		erro "Boot entry $2 does not exist"
+		return 1
+	fi
+	bootdev="$(get_bootdevice "$1" "$2")"
+	mountpoint="$(get_mountpoint "$bootdev")"
+
+	boot "$bootconfig" "$mountpoint"
+}
+
+# Boot a boot config
+# Similar to boot; figues out the mountpoint by itself
+# $1: List of bootentries
+# $2: Path to boot config
+boot_bootconfig() {
+	bootentries="$1"
+	bootconfig="$2"
+
+	mountpoint="$(find_mountpoint "$bootentries" "$bootconfig")"
+	if [ -z "$mountpoint" ]; then
+		erro "Failed to find mountpoint for bootconfig $bootconfig"
+		return 1
+	fi 
+	boot "$(make_abspath "$bootconfig" "$mountpoint")" "$mountpoint"
+}
+
+# Boot the default boot config
+# $1: List of bootentries
+# $2: Default boot entry
+boot_default() {
+	bootconfigs="$1"
+	default_boot_entry="$2"
+
+	echo "Trying to boot default config from $default_boot_entry"
+	if ! [ -f "$default_boot_entry" ]; then 
+		erro "Boot config $default_boot_entry does not exist"
+		return 1
+	fi
+
+	( sleep $AUTOBOOT_WAIT && boot_bootconfig "$bootconfigs" "$default_boot_entry" ||\
+	  erro "Autoboot failed, press [ENTER] to continue to boot menu" ) &
+	autoboot_pid=$!
+	echo "Press [ENTER] within $AUTOBOOT_WAIT seconds to stop autoboot..."
+	read _
+	kill $autoboot_pid 2> /dev/null
+}
+
+echo "Welcome to linux2boot"
+
+unset bootconfigs
+bootconfigs=$(blkid | while read -r blkinfo; do
+	blkdev="$(echo "$blkinfo" | cut -d':' -f1)"
+	erro "Scanning $blkdev for boot configurations..."
+	find_configs "$blkdev" && echo -n '|'
+done)
+
+echo "Found $(num_bootentries "$bootconfigs") boot entries:"
+
+dump_bootentries "$bootconfigs"
+
+default_boot_entry="$(get_default_boot_entry "$bootconfigs")"
+if [ -n "$default_boot_entry" ]; then
+	boot_default "$bootconfigs" "$default_boot_entry"
+fi
+
+echo "Enter number of a boot entry to boot. Enter 'x' to execute a shell"
+while read line; do
+	case "$line" in
+	x)
+		echo "Starting a shell, use 'exit' to get back to the boot menu"
+		sh
+		exit;;
+	d)
+		dump_bootentries "$bootconfigs";;
+	[0-9]*)
+		boot_bootentry "$bootconfigs" "$line";;
+	*)
+		echo Invalid input;;
+	esac
+done
