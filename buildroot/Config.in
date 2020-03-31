@@ -1,0 +1,1 @@
+source "$BR2_EXTERNAL_LINUX2BOOT_PATH/package/linux2boot/Config.in"

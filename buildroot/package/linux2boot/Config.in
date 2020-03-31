@@ -1,0 +1,4 @@
+config BR2_PACKAGE_LINUX2BOOT
+	bool "linux2boot"
+	help
+	  linux2boot is a tiny kexec-based bootloader
