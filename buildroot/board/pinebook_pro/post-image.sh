@@ -8,7 +8,6 @@ GENIMAGE_TMP="${BUILD_DIR}/genimage.tmp"
 
 MKIMAGE="$HOST_DIR"/bin/mkimage
 LZMA="$HOST_DIR"/bin/lzma
-INSTALL="$HOST_DIR"/bin/install
 
 LOADADDR=0x02080000
 
