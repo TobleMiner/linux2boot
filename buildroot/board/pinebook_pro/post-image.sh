@@ -12,7 +12,7 @@ LZMA="$HOST_DIR"/bin/lzma
 LOADADDR=0x02080000
 
 # mkimage needs precompressed images
-$LZMA -f $BINARIES_DIR/Image
+$LZMA -k -f $BINARIES_DIR/Image
 
 # Create fit image
 # Load address and entry point are the same
