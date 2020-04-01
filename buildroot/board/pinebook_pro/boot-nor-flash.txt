@@ -1,0 +1,3 @@
+setenv bootargs console=ttyS2,1500000 root=/dev/mtd4 ro rootwait video=eDP-1:1920x1080@60 vga=current maxcpus=2
+load mtd 1:3 0x00280000
+bootm 0x00280000
