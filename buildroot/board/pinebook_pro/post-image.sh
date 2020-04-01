@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 BOARD_DIR="$(dirname $0)"
 
 GENIMAGE_TMP="${BUILD_DIR}/genimage.tmp"
