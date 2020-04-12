@@ -20,6 +20,9 @@ $MKIMAGE -f auto -A arm64 -O linux -T kernel -C lzma -a $LOADADDR -e $LOADADDR \
 	 -n linux -d $BINARIES_DIR/Image.lzma -b $BINARIES_DIR/rk3399-pinebook-pro.dtb \
 	 $BINARIES_DIR/Image.fit
 
+# Create rkspi image
+$MKIMAGE -n rk3399 -T rkspi -d $BINARIES_DIR/u-boot-tpl.bin:$BINARIES_DIR/u-boot-spl.bin \
+	 $BINARIES_DIR/idbloader-rkspi.bin
 
 for devtype in sdcard nor-flash; do
 	# Build boot scripts
