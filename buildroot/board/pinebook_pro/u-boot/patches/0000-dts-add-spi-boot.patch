@@ -1,0 +1,24 @@
+diff --git a/arch/arm/dts/rk3399-rockpro64-u-boot.dtsi b/arch/arm/dts/rk3399-rockpro64-u-boot.dtsi
+index 4648513ea9..099f93886b 100644
+--- a/arch/arm/dts/rk3399-rockpro64-u-boot.dtsi
++++ b/arch/arm/dts/rk3399-rockpro64-u-boot.dtsi
+@@ -8,6 +8,19 @@
+ / {
+ 	chosen {
+ 		u-boot,spl-boot-order = "same-as-spl", &sdmmc, &sdhci;
++		u-boot,spl-boot-order = "same-as-spl", &spiflash, &sdmmc, &sdhci;
++	};
++
++	aliases {
++		spi0 = &spi1;
++	};
++};
++
++&spi1 {
++	status = "okay";
++
++	spiflash: flash@0 {
++		u-boot,dm-pre-reloc;
+ 	};
+ };
+ 
