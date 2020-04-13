@@ -1,5 +1,6 @@
+setenv fit_addr_r 0x00800000
 setenv mtdids nor0=spi0.0
 setenv mtdparts mtdparts=spi0.0:512k(idbloader),1472k(u-boot),32k(u-boot-env),32k(u-boot-script),6M(kernel),6M(rootfs),2M(overlay)
-setenv bootargs console=ttyS2,1500000 root=/dev/mtd5 ro rootwait video=eDP-1:1920x1080@60 vga=current maxcpus=2 init=/sbin/preinit mtdparts=${mtdparts} overlayro=/dev/mtd5 overlayrw=/dev/mtd6
-load mtd 1:4 0x00280000
-bootm 0x00280000
+setenv bootargs console=ttyS2,1500000 root=/dev/mtdblock5 ro video=eDP-1:1920x1080@60 vga=current maxcpus=2 init=/sbin/preinit ${mtdparts} overlayro=/dev/mtdblock5 overlayrw=/dev/mtdblock6 overlayrwfstype=jffs2
+sf read ${fit_addr_r} kernel
+bootm ${fit_addr_r}
