@@ -70,8 +70,26 @@ fi
 if ! mount ${overlayrwfstype:+-t $overlayrwfstype}\
            -o rw${overlayrwflags:+,$overlayrwflags}\
            "$overlayrw" /mnt/flash; then
-	err "Failed to mount rw overlay, bailing out"
-	bail_out
+	if [ "$overlayrwfstype" = jffs2 ]; then
+		err "Can't mount jffs, trying to rebuild it"
+		case "$overlayrw" in
+			/dev/mtdblock*)
+				mtddev=/dev/mtd/${overlayrw#/dev/mtdblock}
+				flash_erase -j "$mtddev" 0 0;;
+			*)
+				err "Unknown device type '$overlayrw', please recover manually"
+				bail_out;;
+		esac
+		if ! mount -t jffs2 \
+		           -o rw${overlayrwflags:+,$overlayrwflags}\
+		           "$overlayrw" /mnt/flash; then
+			err "Failed to mount rw overlay after recovery, bailing out"
+			bail_out
+		fi
+	else
+		err "Failed to mount rw overlay, bailing out"
+		bail_out
+	fi
 fi
 
 # Create mountpoints for overlayfs
