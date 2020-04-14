@@ -1,3 +1,3 @@
-setenv bootargs console=ttyS2,1500000 root=/dev/mmcblk1p2 rw rootwait video=eDP-1:1920x1080@60 vga=current maxcpus=2
+setenv bootargs console=ttyS2,1500000 root=PARTUUID=13372342-4 rw rootwait video=eDP-1:1920x1080@60 vga=current maxcpus=2
 load mmc 1:1 0x00280000 boot/Image.fit
 bootm 0x00280000
