@@ -74,7 +74,7 @@ if ! mount ${overlayrwfstype:+-t $overlayrwfstype}\
 		err "Can't mount jffs, trying to rebuild it"
 		case "$overlayrw" in
 			/dev/mtdblock*)
-				mtddev=/dev/mtd/${overlayrw#/dev/mtdblock}
+				mtddev=/dev/mtd${overlayrw#/dev/mtdblock}
 				flash_erase -j "$mtddev" 0 0;;
 			*)
 				err "Unknown device type '$overlayrw', please recover manually"
