@@ -1,7 +1,7 @@
-From b0c75e9e61559acc96bc3f00bc0986884af14221 Mon Sep 17 00:00:00 2001
+From 715715c4550bab58bcc42a3eb72fd8f669428b0d Mon Sep 17 00:00:00 2001
 From: Tobias Schramm <t.schramm@manjaro.org>
 Date: Mon, 13 Apr 2020 21:10:59 +0200
-Subject: [PATCH 2/2] board: pine64: Add support for Pinebook Pro
+Subject: [PATCH 3/3] board: pine64: Add support for Pinebook Pro
 
 Signed-off-by: Tobias Schramm <t.schramm@manjaro.org>
 ---
@@ -11,10 +11,10 @@ Signed-off-by: Tobias Schramm <t.schramm@manjaro.org>
  board/pine64/pinebook-pro_rk3399/MAINTAINERS  |   6 +
  board/pine64/pinebook-pro_rk3399/Makefile     |   7 +
  board/pine64/pinebook-pro_rk3399/README       | 122 ++++++++++++++++++
- .../pinebook-pro_rk3399/pinebook-pro_rk3399.c |  30 +++++
+ .../pinebook-pro_rk3399/pinebook-pro_rk3399.c |  52 ++++++++
  configs/pinebook-pro_defconfig                |  97 ++++++++++++++
  include/configs/pinebook-pro_rk3399.h         |  42 ++++++
- 9 files changed, 339 insertions(+)
+ 9 files changed, 361 insertions(+)
  create mode 100644 board/pine64/pinebook-pro_rk3399/Kconfig
  create mode 100644 board/pine64/pinebook-pro_rk3399/MAINTAINERS
  create mode 100644 board/pine64/pinebook-pro_rk3399/Makefile
@@ -247,37 +247,59 @@ index 0000000000..342d359875
 +http://opensource.rock-chips.com/wiki_Boot_option
 diff --git a/board/pine64/pinebook-pro_rk3399/pinebook-pro_rk3399.c b/board/pine64/pinebook-pro_rk3399/pinebook-pro_rk3399.c
 new file mode 100644
-index 0000000000..b9049abcc7
+index 0000000000..89e2cc0565
 --- /dev/null
 +++ b/board/pine64/pinebook-pro_rk3399/pinebook-pro_rk3399.c
-@@ -0,0 +1,30 @@
-+// SPDX-License-Identifier: GPL-2.0+
+@@ -0,0 +1,52 @@
++	// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * (C) Copyright 2016 Rockchip Electronics Co., Ltd
 + */
 +
 +#include <common.h>
-+#include <dm.h>
++#include <asm/arch-rockchip/gpio.h>
++#include <asm/arch-rockchip/hardware.h>
 +#include <asm/arch-rockchip/periph.h>
++#include <dm.h>
++#include <led.h>
 +#include <power/regulator.h>
++#include <spl_gpio.h>
 +
-+#ifndef CONFIG_SPL_BUILD
-+int board_early_init_f(void)
-+{
-+	struct udevice *regulator;
++#define GPIO0_BASE	0xff720000
++
++#if defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
++// State 1, enable green LED
++void rk3399_spl_board_init(void) {
++	struct rockchip_gpio_regs * const gpio = (void *)GPIO0_BASE;
++
++	puts("Pinebook Pro SPL init\n");
++	// Enable LED
++	spl_gpio_output(gpio, GPIO(BANK_B, 3), 1);
++}
++#elif defined(CONFIG_TPL_BUILD)
++// Stage 0, enable red LED
++void rk3399_spl_board_init(void) {
++	struct rockchip_gpio_regs * const gpio = (void *)GPIO0_BASE;
++
++	puts("Pinebook Pro TPL init\n");
++	// Enable red LED, disable green led
++	spl_gpio_output(gpio, GPIO(BANK_A, 2), 1);
++	spl_gpio_output(gpio, GPIO(BANK_B, 3), 0);
++}
++#endif
++
++#if !defined(CONFIG_SPL_BUILD)
++int last_stage_init(void) {
++	struct udevice *dev;
 +	int ret;
 +
-+	ret = regulator_get_by_platname("vcc5v0_host", &regulator);
-+	if (ret) {
-+		debug("%s vcc5v0_host init fail! ret %d\n", __func__, ret);
-+		goto out;
-+	}
++	puts("Pinebook Pro U-Boot init\n");
 +
-+	ret = regulator_set_enable(regulator, true);
-+	if (ret)
-+		debug("%s vcc5v0-host-en set fail! ret %d\n", __func__, ret);
++	if ((ret = led_get_by_label("red:standby", &dev)))
++		debug("Failed to find standby led: %d\n", ret);
++	else
++		led_set_state(dev, LEDST_OFF);
 +
-+out:
 +	return 0;
 +}
 +#endif

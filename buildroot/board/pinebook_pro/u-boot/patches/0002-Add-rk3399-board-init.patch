@@ -1,0 +1,39 @@
+From fd33e8dfd65e42872acf12a369c42cdb196be1fc Mon Sep 17 00:00:00 2001
+From: Tobias Schramm <t.schramm@manjaro.org>
+Date: Sun, 19 Apr 2020 11:57:46 +0200
+Subject: [PATCH 2/3] Add rk3399 board init
+
+---
+ arch/arm/mach-rockchip/rk3399/rk3399.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/arch/arm/mach-rockchip/rk3399/rk3399.c b/arch/arm/mach-rockchip/rk3399/rk3399.c
+index 863024d071..548fb7c5db 100644
+--- a/arch/arm/mach-rockchip/rk3399/rk3399.c
++++ b/arch/arm/mach-rockchip/rk3399/rk3399.c
+@@ -164,6 +164,9 @@ void board_debug_uart_init(void)
+ }
+ #endif
+ 
++__weak void rk3399_spl_board_init(void) {
++}
++
+ #if defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
+ const char *spl_decode_boot_device(u32 boot_device)
+ {
+@@ -269,5 +272,12 @@ void spl_board_init(void)
+ 	if (regulators_enable_boot_on(false))
+ 		debug("%s: Cannot enable boot on regulator\n", __func__);
+ #endif
++	rk3399_spl_board_init();
++}
++#endif
++
++#if defined(CONFIG_TPL_BUILD)
++void spl_board_init(void) {
++	rk3399_spl_board_init();
+ }
+ #endif
+-- 
+2.26.0
+
