@@ -29,7 +29,7 @@ $MKIMAGE -n rk3399 -T rkspi -d $BINARIES_DIR/u-boot-tpl.bin:$BINARIES_DIR/u-boot
 # Not using sparse files because of https://github.com/pengutronix/genimage/pull/106
 dd if=/dev/zero count=1 bs=2M of=$BINARIES_DIR/empty-overlay.img
 
-for devtype in sdcard nor-flash; do
+for devtype in nor-flash sdcard; do
 	# Build boot scripts
 	$MKIMAGE -C none -A arm64 -T script -d $BOARD_DIR/boot-${devtype}.txt\
 		 $BINARIES_DIR/boot-${devtype}.scr
