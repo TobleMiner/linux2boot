@@ -1,9 +1,17 @@
-From 9d528fe1173d65ae2b7f18aafc139fe25dd9058b Mon Sep 17 00:00:00 2001
+From bbe3fec42ee3cf500e717600ea181bc8302cd608 Mon Sep 17 00:00:00 2001
 From: Tobias Schramm <t.schramm@manjaro.org>
 Date: Mon, 13 Apr 2020 18:49:57 +0200
-Subject: [PATCH 2/4] Add rudimentary spi flash boot support
+Subject: [PATCH 2/2] distro_bootcmd: add sf SPI flash boot support
+
+This commit adds generic boot support for SPI flash.
+Adding SPI flash support to a device can be achieved by adding
+following declaration to the BOOT_TARGET_DEVICES
+
+	func(SF, sf, <spibus>[:<cs>], <mtd partition>)
 
 Signed-off-by: Tobias Schramm <t.schramm@manjaro.org>
+Cc: Patrick Wildt <patrick@blueri.se>
+Cc: AKASHI Takahiro <takahiro.akashi@linaro.org>
 ---
  include/config_distro_bootcmd.h | 22 ++++++++++++++++++++++
  1 file changed, 22 insertions(+)
