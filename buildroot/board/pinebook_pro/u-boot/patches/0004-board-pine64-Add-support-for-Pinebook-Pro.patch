@@ -1,7 +1,7 @@
-From 3c7a37351a1472d226d9c79501519e7b1531f2aa Mon Sep 17 00:00:00 2001
+From 88deb0d0b5fd19a452c899345040c058c254e2d9 Mon Sep 17 00:00:00 2001
 From: Tobias Schramm <t.schramm@manjaro.org>
 Date: Mon, 13 Apr 2020 21:10:59 +0200
-Subject: [PATCH 3/3] board: pine64: Add support for Pinebook Pro
+Subject: [PATCH 4/4] board: pine64: Add support for Pinebook Pro
 
 Signed-off-by: Tobias Schramm <t.schramm@manjaro.org>
 ---
@@ -408,7 +408,7 @@ index 0000000000..1a337dd5be
 +CONFIG_SYS_SPI_U_BOOT_OFFS=0x80000
 diff --git a/include/configs/pinebook-pro_rk3399.h b/include/configs/pinebook-pro_rk3399.h
 new file mode 100644
-index 0000000000..c977a088b1
+index 0000000000..543edcd6d4
 --- /dev/null
 +++ b/include/configs/pinebook-pro_rk3399.h
 @@ -0,0 +1,42 @@
@@ -439,7 +439,7 @@ index 0000000000..c977a088b1
 +
 +#if CONFIG_IS_ENABLED(CMD_SF)
 +	#define BOOT_TARGET_SF(func) \
-+		func(SF, sf, 0)
++		func(SF, sf, 0, u-boot-script)
 +#else
 +	#define BOOT_TARGET_SF(func)
 +#endif

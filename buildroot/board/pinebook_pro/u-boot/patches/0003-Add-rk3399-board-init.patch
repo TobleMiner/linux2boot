@@ -1,7 +1,7 @@
-From 743442dd36f2cbe2a0cd8b96e29984e9487aab46 Mon Sep 17 00:00:00 2001
+From bf5d4d7fe3ad43d9cbf0487b17f202d0f2971f9a Mon Sep 17 00:00:00 2001
 From: Tobias Schramm <t.schramm@manjaro.org>
 Date: Sun, 19 Apr 2020 11:57:46 +0200
-Subject: [PATCH 2/3] Add rk3399 board init
+Subject: [PATCH 3/4] Add rk3399 board init
 
 ---
  arch/arm/mach-rockchip/rk3399/rk3399.c | 10 ++++++++++
