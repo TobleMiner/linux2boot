@@ -1,4 +1,4 @@
-From bf5d4d7fe3ad43d9cbf0487b17f202d0f2971f9a Mon Sep 17 00:00:00 2001
+From ec4db12da7cf01dd160acce89deaa5c2921e5ada Mon Sep 17 00:00:00 2001
 From: Tobias Schramm <t.schramm@manjaro.org>
 Date: Sun, 19 Apr 2020 11:57:46 +0200
 Subject: [PATCH 3/4] Add rk3399 board init

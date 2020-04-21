@@ -1,4 +1,4 @@
-From b3d57d9b290a3788af0c0bdadcd698b39e43183a Mon Sep 17 00:00:00 2001
+From 9d528fe1173d65ae2b7f18aafc139fe25dd9058b Mon Sep 17 00:00:00 2001
 From: Tobias Schramm <t.schramm@manjaro.org>
 Date: Mon, 13 Apr 2020 18:49:57 +0200
 Subject: [PATCH 2/4] Add rudimentary spi flash boot support
@@ -9,7 +9,7 @@ Signed-off-by: Tobias Schramm <t.schramm@manjaro.org>
  1 file changed, 22 insertions(+)
 
 diff --git a/include/config_distro_bootcmd.h b/include/config_distro_bootcmd.h
-index aacfb309da..78391450f2 100644
+index aacfb309da..02b70dd271 100644
 --- a/include/config_distro_bootcmd.h
 +++ b/include/config_distro_bootcmd.h
 @@ -67,6 +67,27 @@
@@ -19,13 +19,13 @@ index aacfb309da..78391450f2 100644
 +#ifdef CONFIG_CMD_SF
 +#define BOOTENV_SHARED_SF \
 +		"sf_boot=if sf probe ${devnum}; then " \
-+			"sf read ${scriptaddr} ${bootpart} && "\
++			"sf read ${scriptaddr} ${distro_bootpart} && "\
 +			"source ${scriptaddr}; " \
 +		"fi\0"
 +#define BOOTENV_DEV_SF(devtypeu, devtypel, instance, bootpart) \
 +	"bootcmd_" #devtypel #instance "=" \
 +		"devnum=" #instance "; " \
-+		"bootpart=" #bootpart "; " \
++		"distro_bootpart=" #bootpart "; " \
 +		"run " #devtypel "_boot\0"
 +#define BOOTENV_DEV_NAME_SF(devtypeu, devtypel, instance, bootpart) \
 +	#devtypel #instance " "
