@@ -1,4 +1,4 @@
-From 715715c4550bab58bcc42a3eb72fd8f669428b0d Mon Sep 17 00:00:00 2001
+From 3c7a37351a1472d226d9c79501519e7b1531f2aa Mon Sep 17 00:00:00 2001
 From: Tobias Schramm <t.schramm@manjaro.org>
 Date: Mon, 13 Apr 2020 21:10:59 +0200
 Subject: [PATCH 3/3] board: pine64: Add support for Pinebook Pro
