@@ -20,10 +20,16 @@ export PATH="/bin:/sbin:/usr/bin:/usr/sbin"
 
 info() {
 	echo ":: $@"
+	if [ -e /dev/tty0 ]; then
+		echo ":: $@" > /dev/tty0
+	fi
 }
 
 err() {
 	echo "!! $@"
+	if [ -e /dev/tty0 ]; then
+		echo "!! $@" > /dev/tty0
+	fi
 }
 
 info "Running overlayfs handler"
@@ -75,7 +81,12 @@ if ! mount ${overlayrwfstype:+-t $overlayrwfstype}\
 		case "$overlayrw" in
 			/dev/mtdblock*)
 				mtddev=/dev/mtd${overlayrw#/dev/mtdblock}
-				flash_erase -j "$mtddev" 0 0;;
+				if [ -e /dev/tty0 ]; then
+					flash_erase -j "$mtddev" 0 0 2>&1 > /dev/tty0
+				else
+					flash_erase -j "$mtddev" 0 0
+				fi
+				;;
 			*)
 				err "Unknown device type '$overlayrw', please recover manually"
 				bail_out;;
