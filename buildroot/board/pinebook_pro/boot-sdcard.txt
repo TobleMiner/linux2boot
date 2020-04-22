@@ -1,6 +1,6 @@
 led green:disk-activity off
 led red:standby on
-setexpr rootpart ${distro_bootpart} + 1
+setexpr rootpart ${distro_bootpart} + 1 || rootpart=4
 part uuid ${devtype} ${devnum}:${rootpart} rootuuid
 setenv bootargs console=ttyS2,1500000 root=PARTUUID=${rootuuid} rw rootwait video=eDP-1:1920x1080@60 vga=current maxcpus=2
 load ${devtype} ${devnum}:${distro_bootpart} 0x00280000 boot/Image.fit
