@@ -1,5 +1,7 @@
 led green:disk-activity off
 led red:standby on
+mmc dev 0 && mmc info && mmc part
+mmc dev 1 && mmc info && mmc part
 setenv fit_addr_r 0x00800000
 setenv mtdids nor0=spi0.0
 setenv mtdparts mtdparts=spi0.0:512k(idbloader),1472k(u-boot),32k(u-boot-env),32k(u-boot-script),6M(kernel),6M(rootfs),2M(overlay)
